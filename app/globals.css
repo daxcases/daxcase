@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Inter Tight", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #111113;
+  --color-muted: #6b6b73;
+  --color-line: #e6e6e8;
+  --color-paper: #fafafa;
+  --color-brand: #d81f26;
+}
+
+/* ── Dark mode: the same colour names, swapped. "white" becomes the dark background and
+   "ink" becomes the light text, so every page follows without its own dark styles. ── */
+html.dark {
+  color-scheme: dark;
+  --color-white: #0f0f11;
+  --color-ink: #f4f4f5;
+  --color-muted: #a1a1aa;
+  --color-line: #2c2c31;
+  --color-paper: #18181b;
+  --color-red-50: #2a1214;
+  --color-green-100: #12301c; --color-green-800: #86efac; --color-green-700: #86efac;
+  --color-red-100: #3a1516; --color-red-800: #fca5a5; --color-red-600: #f87171; --color-red-700: #f87171;
+  --color-amber-100: #3a2a10; --color-amber-900: #fcd34d; --color-amber-800: #fcd34d; --color-amber-600: #fbbf24;
+  --color-blue-100: #14253f; --color-blue-800: #93c5fd;
+  --color-purple-100: #2a1a3f; --color-purple-800: #d8b4fe;
+  --color-cyan-100: #0f2f36; --color-cyan-800: #67e8f9;
+  --color-neutral-200: #2c2c31; --color-neutral-600: #a1a1aa;
+}
+html.dark .hero-img { mix-blend-mode: normal; border-radius: 28px; }
+html.dark .case-shadow { filter: drop-shadow(0 18px 28px rgba(0,0,0,.6)); }
+
+html { -webkit-tap-highlight-color: transparent; }
+body { @apply bg-white text-ink antialiased; font-family: var(--font-sans); }
+.font-display { font-family: var(--font-display); letter-spacing: -0.035em; }
+.logo { font-family: "Archivo", "Arial Black", sans-serif; font-weight: 900; font-style: italic; font-stretch: 125%; font-variation-settings: "wdth" 125; letter-spacing: -0.02em; }
+
+.btn-dark { @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 h-12 text-[15px] font-semibold transition active:scale-[.98] disabled:opacity-50 disabled:pointer-events-none bg-brand hover:bg-[#b9151b]; color: #fff; }
+.btn-light { @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 h-12 text-[15px] font-semibold transition active:scale-[.98] disabled:opacity-50 disabled:pointer-events-none border border-line bg-white hover:border-ink; }
+.chip { @apply inline-flex items-center h-10 px-4 rounded-xl border border-line bg-white text-[14px] font-medium whitespace-nowrap transition hover:border-ink; }
+.chip-on { @apply inline-flex items-center h-10 px-4 rounded-xl border border-ink bg-ink text-white text-[14px] font-medium whitespace-nowrap transition; }
+.card { @apply rounded-2xl border border-line bg-white; }
+.input { @apply w-full h-12 rounded-xl border border-line bg-white px-4 text-[16px] outline-none transition focus:border-ink placeholder:text-muted/70; }
+.label { @apply block text-[15px] font-semibold mb-2; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+.case-shadow { filter: drop-shadow(0 18px 28px rgba(0,0,0,.18)) drop-shadow(0 4px 8px rgba(0,0,0,.12)); }
+.switch { @apply relative inline-block w-[50px] h-[30px] rounded-full bg-line transition shrink-0; }
+.switch::after { content: ""; @apply absolute top-[3px] left-[3px] w-6 h-6 rounded-full bg-white shadow transition-all; }
+.switch-on { @apply relative inline-block w-[50px] h-[30px] rounded-full bg-ink transition shrink-0; }
+.switch-on::after { content: ""; @apply absolute top-[3px] left-[23px] w-6 h-6 rounded-full bg-white shadow transition-all; }
