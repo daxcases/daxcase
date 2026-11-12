@@ -1,5 +1,6 @@
 import { getMaterials, getNotifyEmail, getPricing, getSocial, getTelegramChat } from "@/lib/db";
 import { InstagramIcon, TikTokIcon } from "@/components/SocialLinks";
+import { storageMode } from "@/lib/storage";
 import { requireOwner, testTelegram, updateNotifyEmail, updatePricing, updateSocial, updateTelegram } from "../actions";
 import { CURRENCY, type CountryCode } from "@/lib/config";
 import { COUNTRIES } from "@/lib/locations";
@@ -12,6 +13,11 @@ export default async function SettingsAdmin({ searchParams }: { searchParams: Pr
   const hasKey = !!process.env.RESEND_API_KEY;
   return (
     <div className="max-w-4xl">
+      <div className="card p-4 mb-8 text-[14px] grid sm:grid-cols-3 gap-3">
+        <div><div className="text-muted text-[12px]">Database</div><b>{process.env.DATABASE_URL || process.env.POSTGRES_URL ? "✓ Connected" : "Local (development)"}</b></div>
+        <div><div className="text-muted text-[12px]">Images are saved in</div><b>{storageMode()}</b></div>
+        <div><div className="text-muted text-[12px]">Order emails / Telegram</div><b>{process.env.RESEND_API_KEY ? "✓ Email" : "– Email"} · {process.env.TELEGRAM_BOT_TOKEN ? "✓ Telegram" : "– Telegram"}</b></div>
+      </div>
       <h1 className="font-display text-[32px] font-bold">Prices & shipping</h1>
       <p className="text-muted mt-1">Customers pay in cash on delivery. Prices are per case, in each country's currency.</p>
       {saved && <p className="mt-4 rounded-xl bg-green-100 text-green-800 px-4 py-3 text-[14px]">Saved.</p>}

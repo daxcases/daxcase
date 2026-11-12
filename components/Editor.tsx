@@ -211,7 +211,7 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
   };
 
   const loadFont = async (family: string) => {
-    try { await document.fonts.load(`700 40px "${family}"`); } catch {}
+    try { await Promise.race([document.fonts.load(`700 40px "${family}"`), new Promise((r) => setTimeout(r, 1500))]); } catch {}
     fab.current?.cache.clearFontCache(family);
   };
 
@@ -236,6 +236,7 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
     const n = c.getObjects().length;
     img.set({ scaleX: k, scaleY: k, left: size.current.w * (0.35 + ((n * 0.17) % 0.35)), top: size.current.h * (0.45 + ((n * 0.09) % 0.3)) });
     c.add(img); c.setActiveObject(img); c.requestRenderAll();
+    showCase();
   };
 
   // ── text effects ──
@@ -311,6 +312,13 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
     }
     added.forEach((o) => c.add(o));
     c.setActiveObject(added[0]); c.requestRenderAll();
+    setTimeout(showCase, 50);
+  };
+
+  const showCase = () => {
+    const el = wrapRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.top < 60 || r.bottom > window.innerHeight) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const addEmoji = (e: string) => {
@@ -323,6 +331,7 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
     });
     (em as any).isEmoji = true;
     c.add(em); c.setActiveObject(em); c.requestRenderAll();
+    showCase();
   };
 
   const setBackground = (color: string) => {
@@ -393,20 +402,10 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
     exportPrint: async () => {
       const c = fc.current!; c.discardActiveObject();
       const clip = c.clipPath; c.clipPath = undefined; c.renderAll();
-      try {
-        // full case outline incl. bleed, ~1400px wide (≈ 450 dpi on a 78 mm case).
-        // The upload limit is 4 MB, so if a busy design comes out bigger, retry a little smaller.
-        let quality = 0.92, mult = 1400 / size.current.w, blob!: Blob;
-        for (let i = 0; i < 5; i++) {
-          const url = c.toDataURL({ format: "jpeg", quality, multiplier: mult });
-          blob = await (await fetch(url)).blob();
-          if (blob.size <= 3.5 * 1024 * 1024) break;
-          quality = Math.max(0.6, quality - 0.08); mult *= 0.88;
-        }
-        return blob;
-      } finally {
-        c.clipPath = clip; c.renderAll();
-      }
+      // full case outline incl. bleed, ~1400px wide (≈ 450 dpi on a 78 mm case)
+      const url = c.toDataURL({ format: "jpeg", quality: 0.92, multiplier: 1400 / size.current.w });
+      c.clipPath = clip; c.renderAll();
+      return await (await fetch(url)).blob();
     },
     getJSON: () => ({ ...(fc.current?.toObject(["isBg", "isEmoji", "isArc"]) ?? {}), canvasSize: size.current }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -431,8 +430,8 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
   ];
 
   return (
-    <div className={hidden ? "hidden" : ""}>
-      <div ref={wrapRef} className="relative w-full flex justify-center py-4 select-none">
+    <div className={hidden ? "hidden" : "lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8 lg:items-start"}>
+      <div ref={wrapRef} className="relative w-full flex justify-center py-4 select-none lg:sticky lg:top-20">
         <div className="relative case-shadow" style={{ width: dim.w || undefined, height: dim.h || undefined }}>
           <canvas ref={canvasEl} />
         </div>
@@ -447,6 +446,7 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
         overlayHost,
       )}
 
+      <div>
       {/* selected object toolbar */}
       {sel && (
         <div className="card p-3 mb-3">
@@ -500,13 +500,13 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
       )}
 
       {/* tools */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-3 gap-2">
         {tabs.map(([k, label, icon]) => (
           <button key={k} onClick={() => {
             setTool(k);
             if (k === "photo") fileRef.current?.click();
             if (k === "text") addText();
-          }} className={`h-16 rounded-xl border flex flex-col items-center justify-center gap-1 text-[13px] font-medium transition ${tool === k ? "border-ink bg-ink text-white" : "border-line bg-white hover:border-ink"}`}>
+          }} className={`tool-btn h-16 rounded-xl border flex flex-col items-center justify-center gap-1 text-[13px] font-medium ${tool === k ? "border-ink bg-ink text-white" : "border-line bg-white hover:border-ink"}`}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{icon}</svg>
             {label}
           </button>
@@ -550,9 +550,20 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
             <input className="input px-3" placeholder={d.tpl_number} value={tplNum} maxLength={3} onChange={(e) => setTplNum(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-2 mt-3">
-            {([["jersey", d.tpl_jersey], ["vertical", d.tpl_vertical], ["plate", d.tpl_plate], ["heart", d.tpl_heart]] as const).map(([k, label]) => (
-              <button key={k} onClick={() => addTemplate(k)} className="chip justify-center h-12">{label}</button>
-            ))}
+            {([["jersey", d.tpl_jersey], ["vertical", d.tpl_vertical], ["plate", d.tpl_plate], ["heart", d.tpl_heart]] as const).map(([k, label]) => {
+              const nm = tplName.trim() || (lang === "sq" ? "EMRI" : "NAME"), nr = tplNum.trim() || "10";
+              return (
+                <button key={k} onClick={() => addTemplate(k)} className="card p-3 flex flex-col items-center gap-2 hover:border-ink">
+                  <span className="h-16 w-full rounded-lg bg-paper grid place-items-center overflow-hidden">
+                    {k === "jersey" && <span className="text-center leading-none" style={{ fontFamily: "Bebas Neue, Inter" }}><span className="block text-[13px] tracking-[.2em]">{nm.toUpperCase().slice(0, 10)}</span><span className="block text-[34px]">{nr}</span></span>}
+                    {k === "vertical" && <span className="text-[22px] tracking-[.15em] -rotate-90 whitespace-nowrap" style={{ fontFamily: "Bebas Neue, Inter" }}>{nm.toUpperCase().slice(0, 8)}</span>}
+                    {k === "plate" && <span className="flex items-stretch rounded-md border-2 border-ink bg-white text-ink text-[12px] font-bold overflow-hidden" style={{ fontFamily: "Space Mono, monospace" }}><span className="bg-[#1d3f8f] text-white text-[8px] px-1 grid place-items-center">RKS</span><span className="px-2 py-1">{nr} · {nm.toUpperCase().slice(0, 6)}</span></span>}
+                    {k === "heart" && <span className="text-center leading-tight"><span className="block text-[18px]" style={{ fontFamily: "Pacifico, cursive" }}>{nm.slice(0, 10)}</span><span className="text-[16px]">❤️</span></span>}
+                  </span>
+                  <span className="text-[13px] font-semibold">{label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -563,6 +574,7 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
       <div className="flex justify-between items-center mt-4 text-[13px] text-muted">
         <span>{d.ed_hint}</span>
         <button onClick={reset} className="underline hover:text-ink">{d.ed_reset}</button>
+      </div>
       </div>
     </div>
   );

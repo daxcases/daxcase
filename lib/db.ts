@@ -81,6 +81,12 @@ const SCHEMA = [
     role TEXT NOT NULL DEFAULT 'editor',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
+  `CREATE TABLE IF NOT EXISTS images (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    data TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`,
   `CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value JSONB NOT NULL
@@ -179,6 +185,13 @@ export async function getOffers(): Promise<Offer[]> {
   return [...list].sort((a, b) => a.qty - b.qty);
 }
 export const setOffers = (list: Offer[]) => setJsonSetting("offers", list);
+
+// ── Owner password changed from the dashboard ──
+// `env` remembers which ADMIN_PASSWORD was in Vercel when it was changed: if the owner later sets a
+// different ADMIN_PASSWORD in Vercel (for example after forgetting this one), that one works again.
+export type OwnerPassword = { hash: string; env: string };
+export const getOwnerPassword = () => getJsonSetting<OwnerPassword | null>("owner_pw", null);
+export const setOwnerPassword = (v: OwnerPassword | null) => setJsonSetting("owner_pw", v);
 
 // ── Marketing: welcome discount for email sign-ups, loyalty (every Nth case free) ──
 export async function getMarketing(): Promise<Marketing> {

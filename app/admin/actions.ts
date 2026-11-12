@@ -3,8 +3,8 @@ import { cookies } from "next/headers";
 import { normCode } from "@/lib/cart";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { SESSION_COOKIE, checkPassword, createSessionToken, hashPassword, parseSession, toRole, verifyPassword, type Role } from "@/lib/auth";
-import { adjustStock, getAllPhones, getCustomMaterials, getMaterials, getMaterialsOff, setCustomMaterials, setMaterialsOff, getCustomPhones, getDisabledPhones, setCustomPhones, getPricing, savePricing, setDisabledPhones, setNotifyEmail, setSocial, setStock, getOffers, setOffers, getCodes, setCodes, setTelegramChat, setMarketing, getWaitlist, setWaitlist, getWholesale, setWholesale, sql } from "@/lib/db";
+import { SESSION_COOKIE, checkPassword, createSessionToken, envPasswordMark, hashPassword, parseSession, toRole, verifyPassword, type Role } from "@/lib/auth";
+import { adjustStock, getAllPhones, getCustomMaterials, getMaterials, getMaterialsOff, setCustomMaterials, setMaterialsOff, getCustomPhones, getDisabledPhones, setCustomPhones, getPricing, savePricing, setDisabledPhones, setNotifyEmail, setSocial, setStock, getOffers, setOffers, getCodes, setCodes, setTelegramChat, getOwnerPassword, setOwnerPassword, setMarketing, getWaitlist, setWaitlist, getWholesale, setWholesale, sql } from "@/lib/db";
 import { CAMERA_STYLES, PHONES, type PhoneModel } from "@/lib/phones";
 import { ALLOWED_IMAGE_TYPES, deleteImage, saveImage } from "@/lib/storage";
 import { ORDER_STATUSES } from "@/lib/orders";
@@ -36,12 +36,35 @@ export async function requireOwner(): Promise<Me> {
   return me;
 }
 
+/** The owner's password: the one set in the dashboard, unless ADMIN_PASSWORD in Vercel was changed after it */
+async function ownerPasswordOk(pw: string): Promise<boolean> {
+  const saved = await getOwnerPassword();
+  if (saved && saved.env === envPasswordMark()) return verifyPassword(pw, saved.hash);
+  return checkPassword(pw);
+}
+
+export async function changeMyPassword(_: unknown, form: FormData) {
+  const me = await requireStaff();
+  const current = String(form.get("current") || ""), next = String(form.get("next") || ""), again = String(form.get("again") || "");
+  if (next.length < 8) return { error: "The new password must be at least 8 characters." };
+  if (next !== again) return { error: "The two new passwords do not match." };
+  if (me.uid === 0) {
+    if (!(await ownerPasswordOk(current))) { await new Promise((r) => setTimeout(r, 600)); return { error: "The current password is wrong." }; }
+    await setOwnerPassword({ hash: hashPassword(next), env: envPasswordMark() });
+  } else {
+    const [u] = await sql("SELECT password_hash FROM users WHERE id = $1", [me.uid]);
+    if (!u || !verifyPassword(current, u.password_hash)) { await new Promise((r) => setTimeout(r, 600)); return { error: "The current password is wrong." }; }
+    await sql("UPDATE users SET password_hash = $1 WHERE id = $2", [hashPassword(next), me.uid]);
+  }
+  return { ok: Date.now() };
+}
+
 export async function login(_: unknown, form: FormData) {
   const email = String(form.get("email") || "").trim().toLowerCase();
   const pw = String(form.get("password") || "");
   let uid = -1, role: Role = "editor";
   if (!email) {
-    if (checkPassword(pw)) { uid = 0; role = "admin"; }
+    if (await ownerPasswordOk(pw)) { uid = 0; role = "admin"; }
   } else {
     const [u] = await sql("SELECT id, password_hash, role FROM users WHERE email = $1", [email]);
     if (u && verifyPassword(pw, u.password_hash)) { uid = u.id; role = toRole(u.role); }

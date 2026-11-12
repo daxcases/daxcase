@@ -53,6 +53,11 @@ export function verifyPassword(pw: string, stored: string) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+/** A fingerprint of the ADMIN_PASSWORD currently set in the environment (never the password itself) */
+export function envPasswordMark() {
+  return createHmac("sha256", "env-mark").update(adminPassword() ?? "").digest("hex").slice(0, 24);
+}
+
 export function checkPassword(input: string) {
   const pw = adminPassword();
   if (!pw) return false;

@@ -15,8 +15,8 @@ export async function POST(req: Request) {
   try {
     const url = await saveImage(buf, type, `orders/${kind}`);
     return NextResponse.json({ url });
-  } catch (e) {
-    console.error("[upload] saveImage failed:", e);
-    return NextResponse.json({ error: "storage", detail: e instanceof Error ? e.message : String(e) }, { status: 500 });
+  } catch (e: any) {
+    console.error("upload failed", e);
+    return NextResponse.json({ error: "storage", detail: String(e?.message ?? e).slice(0, 300) }, { status: 500 });
   }
 }

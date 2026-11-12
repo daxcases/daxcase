@@ -33,6 +33,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <div className="ml-auto flex items-center gap-3 shrink-0">
                 <ThemeToggle className="!w-9 !h-9" />
                 <Link href="/" target="_blank" className="text-[14px] text-muted hover:text-ink whitespace-nowrap">View shop ↗</Link>
+                <Link href="/admin/account" className="text-[14px] text-muted hover:text-ink whitespace-nowrap">Password</Link>
                 <form action={logout}><button className="chip h-9 text-[13px]">Log out</button></form>
               </div>
             </div>

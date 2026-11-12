@@ -50,3 +50,23 @@ body { @apply bg-white text-ink antialiased; font-family: var(--font-sans); }
 .switch::after { content: ""; @apply absolute top-[3px] left-[3px] w-6 h-6 rounded-full bg-white shadow transition-all; }
 .switch-on { @apply relative inline-block w-[50px] h-[30px] rounded-full bg-ink transition shrink-0; }
 .switch-on::after { content: ""; @apply absolute top-[3px] left-[23px] w-6 h-6 rounded-full bg-white shadow transition-all; }
+
+/* ── Buttons that look and feel pressable ── */
+button:not(:disabled), [role="button"], summary, label[for], select { cursor: pointer; }
+.btn-dark { box-shadow: 0 4px 0 #9e1218, 0 8px 18px -6px rgba(216, 31, 38, .55); transform: translateY(0); transition: transform .12s, box-shadow .12s, background-color .15s; }
+.btn-dark:hover { transform: translateY(-1px); box-shadow: 0 5px 0 #9e1218, 0 12px 22px -6px rgba(216, 31, 38, .6); }
+.btn-dark:active { transform: translateY(3px) scale(1); box-shadow: 0 1px 0 #9e1218, 0 3px 8px -4px rgba(216, 31, 38, .5); }
+.btn-light { border-width: 1.5px; box-shadow: 0 3px 0 var(--color-line); transition: transform .12s, box-shadow .12s, border-color .15s; }
+.btn-light:hover { transform: translateY(-1px); box-shadow: 0 4px 0 var(--color-line), 0 8px 16px -8px rgba(0,0,0,.18); }
+.btn-light:active { transform: translateY(2px) scale(1); box-shadow: 0 1px 0 var(--color-line); }
+.chip { box-shadow: 0 2px 0 var(--color-line); transition: transform .1s, box-shadow .1s, border-color .15s, background-color .15s; }
+.chip:hover { background-color: var(--color-paper); }
+.chip:active { transform: translateY(2px); box-shadow: none; }
+.chip-on { box-shadow: 0 2px 0 rgba(0,0,0,.35); }
+.chip-on:active { transform: translateY(2px); box-shadow: none; }
+button.card, a.card { transition: transform .12s, box-shadow .15s, border-color .15s; }
+button.card:hover, a.card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -10px rgba(0,0,0,.22); }
+button.card:active, a.card:active { transform: translateY(1px); box-shadow: 0 2px 6px -2px rgba(0,0,0,.2); }
+.tool-btn { box-shadow: 0 3px 0 var(--color-line); transition: transform .1s, box-shadow .1s; }
+.tool-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 0 var(--color-line), 0 8px 16px -10px rgba(0,0,0,.25); }
+.tool-btn:active { transform: translateY(2px); box-shadow: none; }

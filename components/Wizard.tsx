@@ -127,15 +127,20 @@ export default function Wizard({
   };
 
   const upload = async (blob: Blob, kind: string) => {
-    const res = await fetch(`/api/upload?kind=${kind}`, { method: "POST", headers: { "content-type": blob.type || "image/jpeg" }, body: blob });
-    if (!res.ok) {
-      let info = "";
-      try { const j = await res.json(); info = `${j.error ?? ""} ${j.detail ?? ""}`; } catch {}
-      throw new Error(`upload ${kind} failed: HTTP ${res.status} ${info}`.trim());
+    // Vercel accepts uploads up to ~4.5 MB: re-encode a very large print file at a lower quality
+    if (blob.size > 3.8 * 1024 * 1024) {
+      const bmp = await createImageBitmap(blob);
+      const c = document.createElement("canvas"); c.width = bmp.width; c.height = bmp.height;
+      c.getContext("2d")!.drawImage(bmp, 0, 0);
+      blob = await new Promise<Blob>((r) => c.toBlob((b) => r(b ?? blob), "image/jpeg", 0.8));
     }
-    const url = (await res.json()).url as string | undefined;
-    if (!url) throw new Error(`upload ${kind} returned no url`);
-    return url;
+    const res = await fetch(`/api/upload?kind=${kind}`, { method: "POST", headers: { "content-type": blob.type }, body: blob });
+    if (!res.ok) {
+      const info = await res.json().catch(() => ({}));
+      console.error("Design upload failed", res.status, info);
+      throw new Error("upload");
+    }
+    return (await res.json()).url as string;
   };
 
   const order = async () => {
@@ -151,7 +156,7 @@ export default function Wizard({
       writeCart([...cart, draft]);
       router.push(`/${lang}/cart`);
     } catch (e) {
-      console.error("[add-to-cart]", e);
+      console.error(e);
       setError(d.order_error); setBusy(false);
     }
   };
@@ -167,10 +172,10 @@ export default function Wizard({
     return phones.filter((p) => (s ? p.name.toLowerCase().includes(s) : p.brand === brand));
   }, [brand, q, phones]);
 
-  const optionCard = "w-full card px-5 py-4 flex items-center gap-4 text-left transition hover:border-ink";
+  const optionCard = "w-full card px-5 py-4 flex items-center gap-4 text-left hover:border-ink";
 
   return (
-    <div className={`mx-auto px-4 sm:px-6 pt-6 ${step === 3 && designView === "choose" && tab === "ours" ? "max-w-5xl" : "max-w-2xl"}`}>
+    <div className={`mx-auto px-4 sm:px-6 pt-6 ${(step === 3 && designView === "choose" && tab === "ours") || (step === 3 && designView === "edit") ? "max-w-5xl" : "max-w-2xl"}`}>
       <link rel="stylesheet" href={FONT_LINK} />
       {/* progress */}
       <div className="flex items-center gap-3">
@@ -299,6 +304,7 @@ export default function Wizard({
                   ["photo", d.opt_photo, d.opt_photo_d, "M4 16l4.6-4.6a2 2 0 012.8 0L16 16m-2-2 1.6-1.6a2 2 0 012.8 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"],
                   ["text", d.opt_text, d.opt_text_d, "M5 6V4h14v2M12 4v16m-3 0h6"],
                   ["emoji", d.opt_emoji, d.opt_emoji_d, "M12 21a9 9 0 100-18 9 9 0 000 18zM8.5 14.5a4.5 4.5 0 007 0M9 9.5h.01M15 9.5h.01"],
+                  ["tpl", d.opt_tpl, d.opt_tpl_d, "M4 5h16v14H4zM8 10h8M8 14h5"],
                   [null, d.opt_mix, d.opt_mix_d, "M12 3l9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 16l9 5 9-5"],
                 ] as const).map(([k, title, desc, icon]) => (
                   <button key={title} className={optionCard} onClick={() => { setDesign(null); setPendingTool(k as Tool | null); setDesignView("edit"); }}>

@@ -12,9 +12,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const url = o?.items?.[i]?.printUrl;
   if (!url) return new Response("Not found", { status: 404 });
   try {
-    const buf = await readImage(url);
-    const png = url.endsWith(".png");
-    return new Response(new Uint8Array(buf), {
+    const img = await readImage(url);
+    const png = img.type === "image/png";
+    return new Response(new Uint8Array(img.data), {
       headers: {
         "content-type": png ? "image/png" : "image/jpeg",
         "content-disposition": `attachment; filename="${id}-${i + 1}.${png ? "png" : "jpg"}"`,
