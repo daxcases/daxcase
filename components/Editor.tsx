@@ -393,10 +393,20 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor(
     exportPrint: async () => {
       const c = fc.current!; c.discardActiveObject();
       const clip = c.clipPath; c.clipPath = undefined; c.renderAll();
-      // full case outline incl. bleed, ~1400px wide (≈ 450 dpi on a 78 mm case)
-      const url = c.toDataURL({ format: "jpeg", quality: 0.92, multiplier: 1400 / size.current.w });
-      c.clipPath = clip; c.renderAll();
-      return await (await fetch(url)).blob();
+      try {
+        // full case outline incl. bleed, ~1400px wide (≈ 450 dpi on a 78 mm case).
+        // The upload limit is 4 MB, so if a busy design comes out bigger, retry a little smaller.
+        let quality = 0.92, mult = 1400 / size.current.w, blob!: Blob;
+        for (let i = 0; i < 5; i++) {
+          const url = c.toDataURL({ format: "jpeg", quality, multiplier: mult });
+          blob = await (await fetch(url)).blob();
+          if (blob.size <= 3.5 * 1024 * 1024) break;
+          quality = Math.max(0.6, quality - 0.08); mult *= 0.88;
+        }
+        return blob;
+      } finally {
+        c.clipPath = clip; c.renderAll();
+      }
     },
     getJSON: () => ({ ...(fc.current?.toObject(["isBg", "isEmoji", "isArc"]) ?? {}), canvasSize: size.current }),
     // eslint-disable-next-line react-hooks/exhaustive-deps

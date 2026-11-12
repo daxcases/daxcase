@@ -127,9 +127,15 @@ export default function Wizard({
   };
 
   const upload = async (blob: Blob, kind: string) => {
-    const res = await fetch(`/api/upload?kind=${kind}`, { method: "POST", headers: { "content-type": blob.type }, body: blob });
-    if (!res.ok) throw new Error("upload");
-    return (await res.json()).url as string;
+    const res = await fetch(`/api/upload?kind=${kind}`, { method: "POST", headers: { "content-type": blob.type || "image/jpeg" }, body: blob });
+    if (!res.ok) {
+      let info = "";
+      try { const j = await res.json(); info = `${j.error ?? ""} ${j.detail ?? ""}`; } catch {}
+      throw new Error(`upload ${kind} failed: HTTP ${res.status} ${info}`.trim());
+    }
+    const url = (await res.json()).url as string | undefined;
+    if (!url) throw new Error(`upload ${kind} returned no url`);
+    return url;
   };
 
   const order = async () => {
@@ -144,7 +150,8 @@ export default function Wizard({
       const cart = readCart().map((x) => ({ ...x, country, city })).slice(0, MAX_CART_ITEMS - 1);
       writeCart([...cart, draft]);
       router.push(`/${lang}/cart`);
-    } catch {
+    } catch (e) {
+      console.error("[add-to-cart]", e);
       setError(d.order_error); setBusy(false);
     }
   };
